@@ -59,15 +59,19 @@ def save_csv_monthly_portfolio(kupa_id, year, month):
             sheet = csv.writer(outfile)
             sheet.writerow(['קופה', 'תקופה', 'קוד', 'נכס', 'כמות'])
             pretty_month = '{:02d}/{:04d}'.format(month, year)
-            for r in result:
-                if r.tag != 'ROW':
+            for row in result:
+                if row.tag.lower() != 'ROW'.lower():
                     continue
+                row_data = dict()
+                for r in row:
+                    print(r, r.tag, r.text)
+                    row_data[r.tag.lower()] = r.text
                 try:
                     sheet.writerow([
                         kupa_id, pretty_month,
-                        r['ID_NATUN'], r['SHM_NATUN'], r['ERECH_NATUN']])
+                        row_data['id_natun'], row_data['shm_natun'], row_data['erech_natun']])
                 except Exception as ex:
-                    logger.error(ex)
+                    logger.exception(ex)
         return filepath
 
 
@@ -102,11 +106,12 @@ def main():
                     if year >= now.year and month >= now.month:
                         break
                     kupot_data.append((line[0], year, month))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        future_kupot = (executor.submit(save_csv_monthly_portfolio, kupa_id, year, month) \
-                  for kupa_id, year, month in kupot_data)
-        for future in concurrent.futures.as_completed(future_kupot):
-            print('saved', future.result())
+    save_csv_monthly_portfolio(101, 2022, 7)
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    #     future_kupot = (executor.submit(save_csv_monthly_portfolio, kupa_id, year, month) \
+    #               for kupa_id, year, month in kupot_data)
+    #     for future in concurrent.futures.as_completed(future_kupot):
+    #         print('saved', future.result())
 
 
 if __name__ == '__main__':
