@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import concurrent.futures
 import csv
 import datetime
@@ -41,10 +43,14 @@ def _load_xml_monthly_portfolio(kupa_id, year, month):
     }
     result = requests.get(API_URL, params=params)
     if result.status_code != 200:
-        logger.warning(f"kupa: {kupa_id} at {year}-{month} wasn't saved")
+        logger.warning(f"status code: {result.status_code}, kupa: {kupa_id} at {year}-{month} wasn't saved")
         return None
     result.encoding = 'UTF-8'
-    xml = XML.fromstring(result.text)
+    try:
+        xml = XML.fromstring(result.text)
+    except XML.ParseError:
+        logger.warning(f"no file for kupa {kupa_id} at {year}-{month}")
+        return None
     return xml
 
 
@@ -64,7 +70,6 @@ def save_csv_monthly_portfolio(kupa_id, year, month):
                     continue
                 row_data = dict()
                 for r in row:
-                    print(r, r.tag, r.text)
                     row_data[r.tag.lower()] = r.text
                 try:
                     sheet.writerow([
@@ -82,7 +87,6 @@ def main():
     parser.add_argument('-m', '--month', type=int)
     args = parser.parse_args()
 
-    print('downloading...')
     kupot_data = []
     now = datetime.datetime.now()
 
@@ -106,12 +110,12 @@ def main():
                     if year >= now.year and month >= now.month:
                         break
                     kupot_data.append((line[0], year, month))
-    save_csv_monthly_portfolio(101, 2022, 7)
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-    #     future_kupot = (executor.submit(save_csv_monthly_portfolio, kupa_id, year, month) \
-    #               for kupa_id, year, month in kupot_data)
-    #     for future in concurrent.futures.as_completed(future_kupot):
-    #         print('saved', future.result())
+    print('start downloading')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_kupot = (executor.submit(save_csv_monthly_portfolio, kupa_id, year, month) \
+                  for kupa_id, year, month in kupot_data)
+        for future in concurrent.futures.as_completed(future_kupot):
+            print('saved', future.result())
 
 
 if __name__ == '__main__':
