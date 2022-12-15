@@ -13,8 +13,10 @@ services:
 
   # backend:
   # TODO this will run the scrapers, optionally fetching the Excel files as well
-  # frontend:
-  # TODO this will serve the website, based on the DB
+  frontend:
+    build: ./frontend
+    ports:
+      - '8000:8000'
 
 volumes:
   db:

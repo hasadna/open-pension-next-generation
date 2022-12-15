@@ -8,4 +8,4 @@ freeze:
 	venv/bin/pip freeze > requirements.txt
 
 serve:
-	venv/bin/python hello.py
+	venv/bin/python app.py
